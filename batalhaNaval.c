@@ -1,86 +1,116 @@
 #include <stdio.h>
 
-#define TAMANHO_TABULEIRO 10
-#define TAMANHO_NAVIO 3
+#define TAM 10
 #define NAVIO 3
 #define AGUA 0
+#define HABILIDADE 5
 
-// Inicializa o tabuleiro com 0 (água)
-void inicializarTabuleiro(int tabuleiro[TAMANHO_TABULEIRO][TAMANHO_TABULEIRO]) {
-    for (int i = 0; i < TAMANHO_TABULEIRO; i++) {
-        for (int j = 0; j < TAMANHO_TABULEIRO; j++) {
+// Inicializa o tabuleiro com água
+void inicializarTabuleiro(int tabuleiro[TAM][TAM]) {
+    for (int i = 0; i < TAM; i++) {
+        for (int j = 0; j < TAM; j++) {
             tabuleiro[i][j] = AGUA;
         }
     }
 }
 
-// Exibe o tabuleiro formatado
-void exibirTabuleiro(int tabuleiro[TAMANHO_TABULEIRO][TAMANHO_TABULEIRO]) {
-    printf("Tabuleiro:\n\n");
-    for (int i = 0; i < TAMANHO_TABULEIRO; i++) {
-        for (int j = 0; j < TAMANHO_TABULEIRO; j++) {
-            printf("%d ", tabuleiro[i][j]);
+// Exibe o tabuleiro com diferentes marcadores
+void exibirTabuleiro(int tabuleiro[TAM][TAM]) {
+    printf("\nTabuleiro:\n\n");
+    for (int i = 0; i < TAM; i++) {
+        for (int j = 0; j < TAM; j++) {
+            if (tabuleiro[i][j] == NAVIO)
+                printf("3 ");
+            else if (tabuleiro[i][j] == HABILIDADE)
+                printf("5 ");
+            else
+                printf("0 ");
         }
         printf("\n");
     }
 }
 
-// Função para verificar se há espaço livre para qualquer tipo de navio
-int verificarEspacoLivre(int tabuleiro[TAMANHO_TABULEIRO][TAMANHO_TABULEIRO], int coordenadas[][2], int tamanho) {
-    for (int i = 0; i < tamanho; i++) {
-        int linha = coordenadas[i][0];
-        int coluna = coordenadas[i][1];
-
-        if (linha < 0 || linha >= TAMANHO_TABULEIRO || coluna < 0 || coluna >= TAMANHO_TABULEIRO)
-            return 0; // Fora do tabuleiro
-
-        if (tabuleiro[linha][coluna] != AGUA)
-            return 0; // Já tem navio aqui
+// Coloca navio fixo (tamanho 3) horizontal
+void posicionarNavioHorizontal(int tabuleiro[TAM][TAM], int linha, int coluna) {
+    for (int i = 0; i < 3; i++) {
+        if (coluna + i < TAM)
+            tabuleiro[linha][coluna + i] = NAVIO;
     }
-    return 1;
 }
 
-// Posiciona qualquer tipo de navio dado suas coordenadas
-void posicionarNavio(int tabuleiro[TAMANHO_TABULEIRO][TAMANHO_TABULEIRO], int coordenadas[][2], int tamanho) {
-    for (int i = 0; i < tamanho; i++) {
-        int linha = coordenadas[i][0];
-        int coluna = coordenadas[i][1];
-        tabuleiro[linha][coluna] = NAVIO;
+// Cria uma matriz de cone 5x5
+void criarMatrizCone(int matriz[5][5]) {
+    for (int i = 0; i < 5; i++) {
+        for (int j = 0; j < 5; j++) {
+            if (j >= 2 - i && j <= 2 + i)
+                matriz[i][j] = 1;
+            else
+                matriz[i][j] = 0;
+        }
+    }
+}
+
+// Cria uma matriz de cruz 5x5
+void criarMatrizCruz(int matriz[5][5]) {
+    for (int i = 0; i < 5; i++) {
+        for (int j = 0; j < 5; j++) {
+            if (i == 2 || j == 2)
+                matriz[i][j] = 1;
+            else
+                matriz[i][j] = 0;
+        }
+    }
+}
+
+// Cria uma matriz de octaedro (losango) 5x5
+void criarMatrizOctaedro(int matriz[5][5]) {
+    for (int i = 0; i < 5; i++) {
+        for (int j = 0; j < 5; j++) {
+            if (abs(i - 2) + abs(j - 2) <= 2)
+                matriz[i][j] = 1;
+            else
+                matriz[i][j] = 0;
+        }
+    }
+}
+
+// Aplica a matriz de habilidade no tabuleiro
+void aplicarHabilidade(int tabuleiro[TAM][TAM], int matriz[5][5], int origemLinha, int origemColuna) {
+    for (int i = 0; i < 5; i++) {
+        for (int j = 0; j < 5; j++) {
+            int linha = origemLinha - 2 + i;
+            int coluna = origemColuna - 2 + j;
+
+            if (linha >= 0 && linha < TAM && coluna >= 0 && coluna < TAM) {
+                if (matriz[i][j] == 1 && tabuleiro[linha][coluna] == AGUA) {
+                    tabuleiro[linha][coluna] = HABILIDADE;
+                }
+            }
+        }
     }
 }
 
 int main() {
-    int tabuleiro[TAMANHO_TABULEIRO][TAMANHO_TABULEIRO];
+    int tabuleiro[TAM][TAM];
+    int cone[5][5], cruz[5][5], octaedro[5][5];
+
     inicializarTabuleiro(tabuleiro);
 
-    // Coordenadas dos 4 navios
-    int navioHorizontal[3][2] = {{1, 2}, {1, 3}, {1, 4}};         // → Horizontal
-    int navioVertical[3][2] = {{3, 6}, {4, 6}, {5, 6}};           // ↓ Vertical
-    int navioDiagonal1[3][2] = {{6, 1}, {7, 2}, {8, 3}};          // ↘ Diagonal principal
-    int navioDiagonal2[3][2] = {{3, 7}, {4, 6}, {5, 5}};          // ↙ Diagonal secundária (vai colidir com vertical!)
+    // Posiciona navio de exemplo
+    posicionarNavioHorizontal(tabuleiro, 1, 2);
+    posicionarNavioHorizontal(tabuleiro, 4, 4);
 
-    // Tenta posicionar e valida sobreposição
-    if (verificarEspacoLivre(tabuleiro, navioHorizontal, TAMANHO_NAVIO))
-        posicionarNavio(tabuleiro, navioHorizontal, TAMANHO_NAVIO);
-    else
-        printf("Erro ao posicionar navio horizontal.\n");
+    // Cria as matrizes das habilidades
+    criarMatrizCone(cone);
+    criarMatrizCruz(cruz);
+    criarMatrizOctaedro(octaedro);
 
-    if (verificarEspacoLivre(tabuleiro, navioVertical, TAMANHO_NAVIO))
-        posicionarNavio(tabuleiro, navioVertical, TAMANHO_NAVIO);
-    else
-        printf("Erro ao posicionar navio vertical.\n");
+    // Aplica cada habilidade em pontos diferentes do tabuleiro
+    aplicarHabilidade(tabuleiro, cone, 2, 2);       // Cone no topo
+    aplicarHabilidade(tabuleiro, cruz, 5, 5);       // Cruz no centro
+    aplicarHabilidade(tabuleiro, octaedro, 7, 7);   // Octaedro mais embaixo
 
-    if (verificarEspacoLivre(tabuleiro, navioDiagonal1, TAMANHO_NAVIO))
-        posicionarNavio(tabuleiro, navioDiagonal1, TAMANHO_NAVIO);
-    else
-        printf("Erro ao posicionar navio diagonal ↘.\n");
-
-    if (verificarEspacoLivre(tabuleiro, navioDiagonal2, TAMANHO_NAVIO))
-        posicionarNavio(tabuleiro, navioDiagonal2, TAMANHO_NAVIO);
-    else
-        printf("Erro ao posicionar navio diagonal ↙.\n");
-
-    // Exibe o tabuleiro final
+    // Exibe tabuleiro final
     exibirTabuleiro(tabuleiro);
 
     return 0;
